@@ -11,6 +11,7 @@ import BottomNav from '@/components/BottomNav';
 import { categories } from '@/data/presets';
 import { chamarAnaliseGeral, type AnaliseGeral } from '@/services/aiClient';
 import { useAuth } from '@/context/AuthContext';
+import { useLock } from '@/context/LockContext';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button'; // Assuming Button component is from shadcn/ui or similar
 
@@ -19,6 +20,7 @@ type Tab = 'home' | 'categories' | 'add' | 'settings';
 export default function Index() {
   const { entries, search, getByCategory, theme, toggleTheme } = usePasswords();
   const { user, logout, deleteAccount } = useAuth();
+  const { lockVault, hasBiometricsEnabled, isBiometricsSupported, enableBiometrics, disableBiometrics } = useLock();
   const [tab, setTab] = useState<Tab>('home');
   const [query, setQuery] = useState('');
   const [editEntry, setEditEntry] = useState<PasswordEntry | null>(null);
@@ -227,6 +229,38 @@ export default function Index() {
                   <p className="font-display text-2xl font-bold text-accent">
                     {entries.filter(e => e.favorite).length}
                   </p>
+                </div>
+
+                <div className="rounded-2xl bg-card p-4 shadow-card space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-card-foreground">Biometria / Passkeys</p>
+                      <p className="text-xs text-muted-foreground">
+                        {isBiometricsSupported ? 'Suportado no seu dispositivo' : 'Não suportado no seu dispositivo'}
+                      </p>
+                    </div>
+                  </div>
+                  {isBiometricsSupported && (
+                    <button
+                      onClick={hasBiometricsEnabled ? disableBiometrics : enableBiometrics}
+                      className={`w-full rounded-xl py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 ${
+                        hasBiometricsEnabled 
+                          ? 'border border-destructive/30 bg-destructive/10 text-destructive' 
+                          : 'gradient-primary text-primary-foreground shadow-glow'
+                      }`}
+                    >
+                      {hasBiometricsEnabled ? 'Desativar Biometria' : 'Ativar Biometria'}
+                    </button>
+                  )}
+                </div>
+
+                <div className="rounded-2xl bg-card p-4 shadow-card">
+                  <button
+                    onClick={lockVault}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/10 py-2.5 text-sm font-semibold text-primary transition-colors hover:bg-primary/20"
+                  >
+                    <Shield size={16} /> Bloquear Cofre Agora
+                  </button>
                 </div>
 
                 <div className="flex items-center justify-between rounded-2xl bg-card p-4 shadow-card">
