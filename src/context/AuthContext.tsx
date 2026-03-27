@@ -2,6 +2,17 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
+// Gera um hash SHA-256 da senha para uso local (lock screen)
+async function hashSenha(senha: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(senha);
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+export const SENHA_HASH_KEY = 'vault_lock_hash';
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -55,6 +66,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
       if (error) throw error;
+      // Salva um hash local da senha para uso na tela de bloqueio
+      const h = await hashSenha(senha);
+      sessionStorage.setItem(SENHA_HASH_KEY, h);
       return true;
     } catch (error) {
       console.error('Erro ao fazer login:', error);

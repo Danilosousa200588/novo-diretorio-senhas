@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { SENHA_HASH_KEY } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
@@ -51,17 +52,41 @@ export function LockProvider({ children }: { children: React.ReactNode }) {
   const unlockWithPassword = useCallback(async (password: string) => {
     if (!user?.email) return false;
     try {
-      // Reautenticar para verificar a senha (a sessão persiste)
-      const { error } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: password,
-      });
+      // Compara com o hash salvo localmente durante o login (sem chamar a API)
+      const savedHash = sessionStorage.getItem(SENHA_HASH_KEY);
+      if (!savedHash) {
+        // Se não tiver hash local (ex: sessão persistida de outra aba), usa API do Supabase
+        const { error } = await supabase.auth.signInWithPassword({
+          email: user.email,
+          password: password,
+        });
+        if (error) {
+          toast.error('Senha incorreta!');
+          return false;
+        }
+        // Salva o hash para futuros desbloqueios
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const h = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+        sessionStorage.setItem(SENHA_HASH_KEY, h);
+        setIsUnlocked(true);
+        return true;
+      }
 
-      if (error) {
+      // Gera o hash da senha digitada e compara
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password);
+      const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const inputHash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+
+      if (inputHash !== savedHash) {
         toast.error('Senha incorreta!');
         return false;
       }
-      
+
       setIsUnlocked(true);
       return true;
     } catch (err: any) {
