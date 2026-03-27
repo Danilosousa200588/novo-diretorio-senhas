@@ -36,7 +36,7 @@ export default function BottomNav({ active, onNavigate }: BottomNavProps) {
               }`}
             >
               <Icon size={isAdd ? 24 : 20} />
-              {!isAdd && <span className="text-[10px] font-medium">{tab.label}</span>}
+              {!isAdd && <span className="text-[10px] font-medium" translate="no">{tab.label}</span>}
             </button>
           );
         })}
