@@ -28,6 +28,8 @@ export default function Index() {
   const [formPreset, setFormPreset] = useState<{ name: string; domain: string } | undefined>();
   const [analiseGeral, setAnaliseGeral] = useState<AnaliseGeral | null>(null);
   const [loadingAnalise, setLoadingAnalise] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleAnaliseGeral = async () => {
     if (entries.length === 0) {
@@ -47,19 +49,18 @@ export default function Index() {
   };
 
   const handleDeleteAccount = async () => {
-    const confirmar = window.confirm(
-      "TEM CERTEZA ABSOLUTA? Isso vai apagar COMPLETAMENTE sua conta e TODAS as suas senhas. Esse processo é IRREVERSÍVEL."
-    );
-    if (!confirmar) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
 
-    const confirmarDuplo = window.confirm(
-      "Você perderá o acesso para sempre e os dados não poderão ser recuperados nem mesmo pelos administradores. Clique OK para destruir a conta."
-    );
-    if (!confirmarDuplo) return;
-
+    setIsDeleting(true);
     const sucesso = await deleteAccount();
     if (sucesso) {
-      alert("Sua conta e todos os dados foram apagados permanentemente.");
+      toast.success("Sua conta e todos os dados foram apagados permanentemente.");
+    } else {
+      setIsDeleting(false);
+      setConfirmDelete(false);
     }
   };
 
@@ -303,13 +304,40 @@ export default function Index() {
               </div>
 
               <div className="pt-8 text-center space-y-4">
-                <Button 
-                  variant="destructive" 
-                  className="w-full mb-4" 
-                  onClick={handleDeleteAccount}
-                >
-                  Excluir Minha Conta Permanente
-                </Button>
+                {!confirmDelete ? (
+                  <Button 
+                    variant="destructive" 
+                    className="w-full mb-4" 
+                    onClick={handleDeleteAccount}
+                  >
+                    Excluir Minha Conta Permanente
+                  </Button>
+                ) : (
+                  <div className="space-y-2 mb-4 p-4 border border-destructive/50 rounded-xl bg-destructive/10">
+                    <p className="text-xs font-bold text-destructive">
+                      Você tem certeza? Essa ação é IRREVERSÍVEL!
+                    </p>
+                    <div className="flex gap-2 text-center items-center justify-center">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setConfirmDelete(false)}
+                        disabled={isDeleting}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={handleDeleteAccount}
+                        disabled={isDeleting}
+                      >
+                        {isDeleting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : null}
+                        Sim, Excluir Tudo!
+                      </Button>
+                    </div>
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">
                   Vault Password Manager v1.0
                 </p>
