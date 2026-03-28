@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Copy, Eye, EyeOff, Heart, Pencil, Trash2 } from 'lucide-react';
 import { PasswordEntry } from '@/types/password';
 import { usePasswords } from '@/context/PasswordContext';
+import { useLock } from '@/context/LockContext';
 import ServiceLogo from './ServiceLogo';
 import { toast } from 'sonner';
 
@@ -13,9 +14,12 @@ interface PasswordCardProps {
 
 export default function PasswordCard({ entry, onEdit }: PasswordCardProps) {
   const { deleteEntry, toggleFavorite } = usePasswords();
+  const { requireAuth } = useLock();
   const [showPassword, setShowPassword] = useState(false);
 
-  const copyToClipboard = () => {
+  const copyToClipboard = async () => {
+    const authed = await requireAuth(`Autentique-se para copiar a senha de ${entry.name}.`);
+    if (!authed) return;
     navigator.clipboard.writeText(entry.password);
     toast.success('Senha copiada!');
   };
@@ -40,11 +44,23 @@ export default function PasswordCard({ entry, onEdit }: PasswordCardProps) {
             {showPassword ? entry.password : '••••••••••'}
           </span>
         </div>
+        {entry.description && (
+          <p className="mt-2 text-xs text-muted-foreground border-l-2 border-primary/30 pl-2">
+            {entry.description}
+          </p>
+        )}
       </div>
 
       <div className="flex items-center gap-1">
         <button
-          onClick={() => setShowPassword(!showPassword)}
+          onClick={async () => {
+            if (!showPassword) {
+              const authed = await requireAuth(`Autentique-se para visualizar a senha de ${entry.name}.`);
+              if (authed) setShowPassword(true);
+            } else {
+              setShowPassword(false);
+            }
+          }}
           className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
           {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -65,15 +81,21 @@ export default function PasswordCard({ entry, onEdit }: PasswordCardProps) {
           />
         </button>
         <button
-          onClick={() => onEdit(entry)}
+          onClick={async () => {
+            const authed = await requireAuth(`Autentique-se para editar ${entry.name}.`);
+            if (authed) onEdit(entry);
+          }}
           className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
         >
           <Pencil size={16} />
         </button>
         <button
-          onClick={() => {
-            deleteEntry(entry.id);
-            toast.success('Senha removida');
+          onClick={async () => {
+            const authed = await requireAuth(`Autentique-se para excluir ${entry.name}.`);
+            if (authed) {
+              deleteEntry(entry.id);
+              toast.success('Senha removida');
+            }
           }}
           className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-secondary hover:text-destructive"
         >

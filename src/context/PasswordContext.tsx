@@ -71,6 +71,7 @@ export function PasswordProvider({ children }: { children: React.ReactNode }) {
             password: await decryptPassword(row.senha, key).catch(() => 'ERRO_DECRIPT'),
             category: row.categoria as Category,
             favorite: row.favorito,
+            description: row.descricao || '',
             createdAt: row.created_at,
             updatedAt: row.updated_at,
           }))
@@ -102,6 +103,7 @@ export function PasswordProvider({ children }: { children: React.ReactNode }) {
           senha: encrypted,
           categoria: entry.category,
           favorito: entry.favorite,
+          descricao: entry.description,
         })
         .select()
         .single();
@@ -116,6 +118,7 @@ export function PasswordProvider({ children }: { children: React.ReactNode }) {
         password: entry.password,
         category: data.categoria as Category,
         favorite: data.favorito,
+        description: data.descricao || '',
         createdAt: data.created_at,
         updatedAt: data.updated_at,
       }]);
@@ -139,6 +142,7 @@ export function PasswordProvider({ children }: { children: React.ReactNode }) {
       
       if (updates.category !== undefined) updateData.categoria = updates.category;
       if (updates.favorite !== undefined) updateData.favorito = updates.favorite;
+      if (updates.description !== undefined) updateData.descricao = updates.description;
 
       const { data, error } = await supabase
         .from('vault_entries')

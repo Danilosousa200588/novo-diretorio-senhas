@@ -8,6 +8,7 @@ export interface PasswordEntry {
   password: string;
   category: Category;
   favorite: boolean;
+  description?: string;
   createdAt: string;
   updatedAt: string;
 }

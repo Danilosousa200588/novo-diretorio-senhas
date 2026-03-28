@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export default function LockScreen() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { 
     hasBiometricsEnabled, 
     unlockWithPassword, 
@@ -17,6 +17,7 @@ export default function LockScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showEnableBiometrics, setShowEnableBiometrics] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Se o usuário tem biometria ativada, tenta chamar automaticamente ao abrir a tela (opcional)
   useEffect(() => {
@@ -133,6 +134,38 @@ export default function LockScreen() {
             </button>
           </>
         )}
+
+        <div className="pt-6 space-y-2 text-center">
+          {!showLogoutConfirm ? (
+            <button
+              type="button"
+              onClick={() => setShowLogoutConfirm(true)}
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground underline decoration-muted-foreground/30 underline-offset-4"
+            >
+              Esqueceu a senha? Sair da conta
+            </button>
+          ) : (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 space-y-3">
+              <p className="text-sm text-foreground">Tem certeza que deseja sair da conta?</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1 rounded-xl border border-border py-2 text-sm text-muted-foreground hover:bg-secondary"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => logout()}
+                  className="flex-1 rounded-xl bg-destructive py-2 text-sm font-semibold text-white hover:opacity-90"
+                >
+                  Sair
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
       </div>
     </div>

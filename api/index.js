@@ -132,6 +132,44 @@ Retorne um JSON com exatamente esta estrutura:
   "nivelGeral": "precisa melhorar" | "razoável" | "bom" | "excelente"
 }`;
 
+    // ── 4. Análise por entrada (nome + metadados, SEM a senha) ────────────────
+    } else if (action === 'analisarPorEntrada') {
+      const { entradas } = payload;
+
+      if (!entradas || !Array.isArray(entradas) || entradas.length === 0)
+        return res.status(400).json({ error: 'Campo "entradas" é obrigatório e deve ser uma lista.' });
+
+      const listaFormatada = entradas.map((e, i) => {
+        const c = e.caracteristicas;
+        return `Entrada ${i + 1}:
+  Nome/Conta: "${e.nome}"
+  Descrição: "${e.descricao || 'Sem descrição'}"
+  Comprimento da senha: ${c.comprimento} caracteres
+  Tem maiúsculas: ${c.temMaiuscula}
+  Tem minúsculas: ${c.temMinuscula}
+  Tem números: ${c.temNumero}
+  Tem símbolos: ${c.temSimbolo}
+  Padrão comum/fraco: ${c.padroesComuns}`;
+      }).join('\n\n');
+
+      prompt = `Você é um especialista em cibersegurança. Analise as seguintes contas de um cofre de senhas. As senhas reais NÃO foram fornecidas — apenas metadados. Seja específico para cada conta, mencione o Nome/Conta e a Descrição quando houver. NUNCA mencione nem repita qualquer senha.
+
+${listaFormatada}
+
+Retorne um JSON com exatamente esta estrutura:
+{
+  "entradas": [
+    {
+      "nome": "nome da conta",
+      "descricao": "descrição ou vazio",
+      "nivel": "fraca" | "média" | "forte",
+      "explicacao": "análise específica em 1-2 frases em português",
+      "sugestao": "sugestão prática de melhoria em 1 frase"
+    }
+  ],
+  "resumo": "resumo geral do cofre em 2 frases"
+}`;
+
     } else {
       return res.status(400).json({ error: `Ação desconhecida: "${action}"` });
     }

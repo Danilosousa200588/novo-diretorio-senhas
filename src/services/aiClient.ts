@@ -99,6 +99,21 @@ export async function chamarGerarSenha(): Promise<SenhaGerada> {
 import type { PasswordEntry } from '@/types/password';
 import { getPasswordStrength } from '@/lib/passwordUtils';
 
+// ─── Tipos extras ──────────────────────────────────────────────────────────
+
+export interface AnaliseEntrada {
+  nome: string;
+  descricao: string;
+  nivel: 'fraca' | 'média' | 'forte';
+  explicacao: string;
+  sugestao: string;
+}
+
+export interface AnalisePorEntrada {
+  entradas: AnaliseEntrada[];
+  resumo: string;
+}
+
 /**
  * Analisa a segurança geral do cofre de senhas.
  * Envia apenas ESTATÍSTICAS AGREGADAS — nunca conteúdo real das senhas.
@@ -123,4 +138,32 @@ export async function chamarAnaliseGeral(entries: PasswordEntry[]): Promise<Anal
   };
 
   return chamarAPI<AnaliseGeral>('analisarSegurancaGeral', { estatisticas });
+}
+
+// ─── 4. Análise por entrada (nome, descrição, metadados — sem a senha) ────
+
+/**
+ * Analisa cada senha individualmente com base em metadados.
+ * A senha NUNCA é enviada ao servidor — apenas características técnicas.
+ *
+ * @param entries - Lista de entradas do cofre
+ * @returns Análise individual de cada conta
+ */
+export async function chamarAnalisePorEntrada(entries: PasswordEntry[]): Promise<AnalisePorEntrada> {
+  if (entries.length === 0) throw new Error('Nenhuma senha para analisar.');
+
+  const entradas = entries.map(e => ({
+    nome: e.name,
+    descricao: e.description || '',
+    caracteristicas: {
+      comprimento: e.password.length,
+      temMaiuscula: /[A-Z]/.test(e.password),
+      temMinuscula: /[a-z]/.test(e.password),
+      temNumero: /\d/.test(e.password),
+      temSimbolo: /[^A-Za-z0-9]/.test(e.password),
+      padroesComuns: /^(123|abc|password|senha|qwerty)/i.test(e.password),
+    },
+  }));
+
+  return chamarAPI<AnalisePorEntrada>('analisarPorEntrada', { entradas });
 }

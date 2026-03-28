@@ -9,7 +9,7 @@ import CategoryGrid from '@/components/CategoryGrid';
 import PasswordForm from '@/components/PasswordForm';
 import BottomNav from '@/components/BottomNav';
 import { categories } from '@/data/presets';
-import { chamarAnaliseGeral, type AnaliseGeral } from '@/services/aiClient';
+import { chamarAnalisePorEntrada, type AnalisePorEntrada } from '@/services/aiClient';
 import { useAuth } from '@/context/AuthContext';
 import { useLock } from '@/context/LockContext';
 import { toast } from 'sonner';
@@ -20,7 +20,7 @@ type Tab = 'home' | 'categories' | 'add' | 'settings';
 export default function Index() {
   const { entries, search, getByCategory, theme, toggleTheme } = usePasswords();
   const { user, logout, deleteAccount } = useAuth();
-  const { lockVault, hasBiometricsEnabled, isBiometricsSupported, enableBiometrics, disableBiometrics } = useLock();
+  const { lockVault, hasBiometricsEnabled, isBiometricsSupported, enableBiometrics, disableBiometrics, requireAuth } = useLock();
   const [tab, setTab] = useState<Tab>('home');
   const [query, setQuery] = useState('');
   const [editEntry, setEditEntry] = useState<PasswordEntry | null>(null);
@@ -28,7 +28,7 @@ export default function Index() {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [formCategory, setFormCategory] = useState<Category | undefined>();
   const [formPreset, setFormPreset] = useState<{ name: string; domain: string } | undefined>();
-  const [analiseGeral, setAnaliseGeral] = useState<AnaliseGeral | null>(null);
+  const [analiseGeral, setAnaliseGeral] = useState<AnalisePorEntrada | null>(null);
   const [loadingAnalise, setLoadingAnalise] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -38,10 +38,14 @@ export default function Index() {
       toast.error('Nenhuma senha para analisar.');
       return;
     }
+
+    const isAuthed = await requireAuth('Autentique-se para analisar cofre com IA.');
+    if (!isAuthed) return;
+
     setLoadingAnalise(true);
     setAnaliseGeral(null);
     try {
-      const resultado = await chamarAnaliseGeral(entries as PasswordEntry[]);
+      const resultado = await chamarAnalisePorEntrada(entries as PasswordEntry[]);
       setAnaliseGeral(resultado);
     } catch (err: unknown) {
       toast.error('Erro na análise: ' + (err instanceof Error ? err.message : 'Tente novamente.'));
@@ -53,6 +57,12 @@ export default function Index() {
   const handleDeleteAccount = async () => {
     if (!confirmDelete) {
       setConfirmDelete(true);
+      return;
+    }
+
+    const isAuthed = await requireAuth('Autentique-se para excluir sua conta permanentemente.');
+    if (!isAuthed) {
+      setConfirmDelete(false);
       return;
     }
 
@@ -302,35 +312,36 @@ export default function Index() {
                       animate={{ opacity: 1, y: 0 }}
                       className="space-y-3"
                     >
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Nível geral:</span>
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                          analiseGeral.nivelGeral === 'excelente' ? 'bg-emerald-500/20 text-emerald-500'
-                          : analiseGeral.nivelGeral === 'bom' ? 'bg-blue-500/20 text-blue-500'
-                          : analiseGeral.nivelGeral === 'razoável' ? 'bg-yellow-500/20 text-yellow-500'
-                          : 'bg-red-500/20 text-red-500'
-                        }`}>{analiseGeral.nivelGeral}</span>
-                      </div>
-                      {analiseGeral.qtdFracas > 0 && (
-                        <p className="text-xs text-red-500">⚠️ {analiseGeral.qtdFracas} senha(s) fraca(s) detectada(s)</p>
+                      {analiseGeral.resumo && (
+                        <p className="text-xs text-muted-foreground italic border-l-2 border-primary/40 pl-3">
+                          {analiseGeral.resumo}
+                        </p>
                       )}
-                      {analiseGeral.padroesInseguros.length > 0 && (
-                        <div>
-                          <p className="text-xs font-semibold text-muted-foreground mb-1">Padrões inseguros:</p>
-                          <ul className="space-y-0.5">
-                            {analiseGeral.padroesInseguros.map((p, i) => (
-                              <li key={i} className="text-xs text-card-foreground">• {p}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-xs font-semibold text-muted-foreground mb-1">💡 Recomendações:</p>
-                        <ul className="space-y-0.5">
-                          {analiseGeral.recomendacoes.map((r, i) => (
-                            <li key={i} className="text-xs text-card-foreground">• {r}</li>
-                          ))}
-                        </ul>
+                      <div className="space-y-2">
+                        {analiseGeral.entradas?.map((entrada, i) => (
+                          <div
+                            key={i}
+                            className={`rounded-xl p-3 border ${
+                              entrada.nivel === 'forte' ? 'border-emerald-500/30 bg-emerald-500/10'
+                              : entrada.nivel === 'média' ? 'border-yellow-500/30 bg-yellow-500/10'
+                              : 'border-red-500/30 bg-red-500/10'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-sm font-semibold text-card-foreground">{entrada.nome}</span>
+                              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                                entrada.nivel === 'forte' ? 'bg-emerald-500/20 text-emerald-500'
+                                : entrada.nivel === 'média' ? 'bg-yellow-500/20 text-yellow-500'
+                                : 'bg-red-500/20 text-red-500'
+                              }`}>{entrada.nivel}</span>
+                            </div>
+                            {entrada.descricao && (
+                              <p className="text-xs text-muted-foreground mb-2">📝 {entrada.descricao}</p>
+                            )}
+                            <p className="text-xs text-card-foreground">{entrada.explicacao}</p>
+                            <p className="mt-1 text-xs text-primary">💡 {entrada.sugestao}</p>
+                          </div>
+                        ))}
                       </div>
                     </motion.div>
                   )}

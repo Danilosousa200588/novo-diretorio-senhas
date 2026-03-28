@@ -30,6 +30,7 @@ export default function PasswordForm({ entry, presetCategory, presetName, preset
   const [password, setPassword] = useState(entry?.password || '');
   const [category, setCategory] = useState<Category>(entry?.category || presetCategory || 'other');
   const [favorite, setFavorite] = useState(entry?.favorite || false);
+  const [description, setDescription] = useState(entry?.description || '');
 
   useEffect(() => {
     if (!entry && name && !domain) {
@@ -44,7 +45,7 @@ export default function PasswordForm({ entry, presetCategory, presetName, preset
       toast.error('Nome e senha são obrigatórios');
       return;
     }
-    const data = { name, domain: domain || guessDomain(name), username, password, category, favorite };
+    const data = { name, domain: domain || guessDomain(name), username, password, category, favorite, description };
     if (entry) {
       updateEntry(entry.id, data);
       toast.success('Senha atualizada!');
@@ -202,6 +203,17 @@ export default function PasswordForm({ entry, presetCategory, presetName, preset
             <div className="mt-2">
               <PasswordStrengthBar password={password} />
             </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">Descrição (Opcional)</label>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value)}
+              placeholder="Adicione uma descrição, dica ou observação"
+              rows={2}
+              className="w-full rounded-xl border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+            />
           </div>
 
           {/* Category */}
