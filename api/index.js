@@ -19,7 +19,24 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const MODEL = 'llama-3.1-8b-instant';
 
 // ─── Middlewares ──────────────────────────────────────────────────────────────
-app.use(cors({ origin: 'http://localhost:8080' }));
+const ALLOWED_ORIGINS = [
+  'http://localhost:8080',
+  'http://localhost:5173',
+  'https://qiilerbewoloaijqloem.supabase.co',
+  process.env.PRODUCTION_URL, // Set PRODUCTION_URL in .env when deploying
+].filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. server-to-server, curl)
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin not allowed → ${origin}`));
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 // ─── Utilitários ─────────────────────────────────────────────────────────────
